@@ -10,4 +10,4 @@ data class Film (val title : String,
                  @SerializedName("characters")
                  val personUrls : List<String>)
 
-data class Person(val id : String, val gender : String)
+data class Person(val id : String, val name: String, val gender : String)

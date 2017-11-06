@@ -1,5 +1,6 @@
 package mobile.project.com.starwarsapp.model.api
 
+import android.net.Uri
 import com.google.gson.GsonBuilder
 import mobile.project.com.starwarsapp.model.Character
 import mobile.project.com.starwarsapp.model.Movie
@@ -39,4 +40,42 @@ class StarWarsApi {
                 .flatMap { film -> Observable.just(Movie(film.title, film.episodeId, ArrayList<Character>())) }
     }
 
+    var peopleCache = mutableMapOf<String, Person>()
+
+    fun loadMoviesFull() : Observable<Movie> {
+        return service.listMovies()
+                .flatMap { filmResult -> Observable.from(filmResult.results) }
+                .flatMap { film ->
+                    val movieObj = Movie(film.title, film.episodeId, ArrayList<Character>())
+                    Observable.zip(
+                        Observable.just(movieObj),
+                        Observable.from(film.personUrls)
+                            .flatMap { personUrl ->
+                                Observable.concat(
+                                        getCache(personUrl),
+                                        service.loadPerson(Uri.parse(personUrl).lastPathSegment)
+                                                .doOnNext { person ->
+                                                    peopleCache.put(personUrl, person)
+                                                }
+                                ).first()
+                            }
+                            .map { person ->
+                                Character(person!!.name, person.gender)
+                            }.toList(),
+                    { movie, characters ->
+                        movie.characters.addAll(characters)
+                        movie
+                    })
+                }
+    }
+
+    private fun getCache(personUrl: String) : Observable<Person>? {
+        return Observable.from(peopleCache.keys)
+                .filter { key ->
+                    key == personUrl
+                }
+                .map { key ->
+                    peopleCache[key]
+                }
+    }
 }
