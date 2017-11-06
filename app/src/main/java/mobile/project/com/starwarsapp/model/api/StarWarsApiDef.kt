@@ -6,7 +6,7 @@ import rx.Observable
 
 interface StarWarsApiDef {
 
-    @GET("films")
+    @GET("films/")
     fun listMovies(): Observable<FilmResult>
 
     @GET("people/{personId}")
